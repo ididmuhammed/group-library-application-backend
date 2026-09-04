@@ -123,12 +123,3 @@ curl -s -X POST http://localhost:8080/api/admin/users \
       }'
 ```
 
-## Notes / production hardening checklist
-
-- Set `JWT_SECRET`, `ADMIN_PASSWORD` via environment variables — never commit real secrets.
-- Consider shortening `access-token-expiration-ms` and rotating refresh tokens with a
-  server-side revocation list (e.g. Redis) if you need logout/invalidation semantics.
-- `ddl-auto: update` is convenient for development; use Flyway/Liquibase migrations
-  in production instead of Hibernate auto-DDL.
-- CORS is wide open (`*`) for ease of local development — restrict `allowedOriginPatterns`
-  in `SecurityConfig` before deploying.
