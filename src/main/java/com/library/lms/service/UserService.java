@@ -27,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     /**
      * Used by an authenticated admin (USER_CREATE permission) to create
@@ -35,11 +36,17 @@ public class UserService {
      */
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
+
         if (userRepository.existsByUsername(request.username())) {
-            throw new ConflictException("Username already taken: " + request.username());
+            throw new ConflictException(
+                    "Username already taken: " + request.username()
+            );
         }
+
         if (userRepository.existsByEmail(request.email())) {
-            throw new ConflictException("Email already registered: " + request.email());
+            throw new ConflictException(
+                    "Email already registered: " + request.email()
+            );
         }
 
         Set<Role> roles = resolveRoles(request.roleNames());
@@ -53,7 +60,21 @@ public class UserService {
                 .roles(roles)
                 .build();
 
-        return UserResponse.from(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+
+        // Send account creation email
+        emailService.sendUserCreatedEmail(
+                savedUser.getEmail(),
+                savedUser.getFullName(),
+                savedUser.getUsername(),
+                request.password(),
+                savedUser.getRoles()
+                        .stream()
+                        .map(Role::getName)
+                        .collect(Collectors.toSet())
+        );
+
+        return UserResponse.from(savedUser);
     }
 
     @Transactional
