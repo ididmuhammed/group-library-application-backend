@@ -23,11 +23,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookService {
 
-    private static final int DEFAULT_LOAN_DAYS = 14;
+    private static final int DEFAULT_LOAN_DAYS = 1;
 
     private final BookRepository bookRepository;
     private final BorrowRecordRepository borrowRecordRepository;
     private final UserRepository userRepository;
+    private final FineService fineService;
 
     @Transactional
     public BookResponse createBook(BookRequest request) {
@@ -76,6 +77,9 @@ public class BookService {
     @Transactional
     public void deleteBook(Long id) {
         Book book = getBookEntity(id);
+        // Delete all borrow history associated with this book
+        borrowRecordRepository.deleteByBook(book);
+        // Now delete the book
         bookRepository.delete(book);
     }
 
@@ -103,19 +107,36 @@ public class BookService {
 
     @Transactional
     public void returnBook(Long borrowRecordId, String username) {
+
         BorrowRecord record = borrowRecordRepository.findById(borrowRecordId)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrow record not found: " + borrowRecordId));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Borrow record not found: " + borrowRecordId
+                        ));
 
         if (record.getStatus() == BorrowRecord.BorrowStatus.RETURNED) {
-            throw new BadRequestException("This book has already been returned");
+            throw new BadRequestException(
+                    "This book has already been returned"
+            );
         }
 
-        record.setStatus(BorrowRecord.BorrowStatus.RETURNED);
         record.setReturnedDate(LocalDate.now());
+        record.setStatus(BorrowRecord.BorrowStatus.RETURNED);
+
         borrowRecordRepository.save(record);
 
+        // Automatically create overdue fine if applicable
+        fineService.createOverdueFine(record);
+
         Book book = record.getBook();
-        book.setAvailableCopies(Math.min(book.getTotalCopies(), book.getAvailableCopies() + 1));
+
+        book.setAvailableCopies(
+                Math.min(
+                        book.getTotalCopies(),
+                        book.getAvailableCopies() + 1
+                )
+        );
+
         bookRepository.save(book);
     }
 
