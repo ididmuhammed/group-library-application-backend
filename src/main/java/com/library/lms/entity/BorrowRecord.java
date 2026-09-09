@@ -39,6 +39,14 @@ public class BorrowRecord {
     @Column(nullable = false, length = 20)
     private BorrowStatus status = BorrowStatus.BORROWED;
 
+    // Notification bookkeeping — prevents the daily scan from re-sending the
+    // same reminder/notice every day it runs.
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean dueReminderSent = false;
+
+    private LocalDate lastOverdueNotifiedDate;
+
     public enum BorrowStatus {
         BORROWED, RETURNED, OVERDUE
     }
