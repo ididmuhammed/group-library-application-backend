@@ -38,19 +38,30 @@ public final class Permissions {
     public static final String BOOK_RETURN = "BOOK_RETURN";
     public static final String BORROW_RECORD_READ_ALL = "BORROW_RECORD_READ_ALL";
 
+    // ---- Reservations ----
+    public static final String BOOK_RESERVE = "BOOK_RESERVE";
+    public static final String RESERVATION_READ_ALL = "RESERVATION_READ_ALL";
+
+    // ---- Fines ----
+    public static final String FINE_READ = "FINE_READ";
+    public static final String FINE_MANAGE = "FINE_MANAGE";
+
     public static final Set<String> ALL_PERMISSIONS = Set.of(
             USER_CREATE, USER_READ, USER_UPDATE, USER_DELETE, USER_MANAGE_ROLES,
             ROLE_MANAGE,
             BOOK_CREATE, BOOK_READ, BOOK_UPDATE, BOOK_DELETE,
-            BOOK_BORROW, BOOK_RETURN, BORROW_RECORD_READ_ALL
+            BOOK_BORROW, BOOK_RETURN, BORROW_RECORD_READ_ALL,
+            BOOK_RESERVE, RESERVATION_READ_ALL,
+            FINE_READ, FINE_MANAGE
     );
 
     public static final Set<String> LIBRARIAN_PERMISSIONS = Set.of(
             BOOK_CREATE, BOOK_READ, BOOK_UPDATE, BOOK_DELETE,
-            BOOK_RETURN, BORROW_RECORD_READ_ALL, USER_READ
+            BOOK_RETURN, BORROW_RECORD_READ_ALL, USER_READ,
+            RESERVATION_READ_ALL, FINE_READ, FINE_MANAGE
     );
 
     public static final Set<String> MEMBER_PERMISSIONS = Set.of(
-            BOOK_READ, BOOK_BORROW, BOOK_RETURN
+            BOOK_READ, BOOK_BORROW, BOOK_RETURN, BOOK_RESERVE
     );
 }

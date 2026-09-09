@@ -3,9 +3,11 @@ package com.library.lms.controller;
 import com.library.lms.dto.request.BookRequest;
 import com.library.lms.dto.response.BookResponse;
 import com.library.lms.dto.response.BorrowRecordResponse;
+import com.library.lms.dto.response.ReservationResponse;
 import com.library.lms.repository.BorrowRecordRepository;
 import com.library.lms.security.UserPrincipal;
 import com.library.lms.service.BookService;
+import com.library.lms.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +22,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
-public class BookController {
+public class  BookController {
 
     private final BookService bookService;
     private final BorrowRecordRepository borrowRecordRepository;
+    private final ReservationService reservationService;
 
     @PostMapping
     @PreAuthorize("hasAuthority('BOOK_CREATE')")
@@ -83,5 +86,14 @@ public class BookController {
     public ResponseEntity<List<?>> getAllLoans(@AuthenticationPrincipal UserPrincipal principal) {
         List<?> records = borrowRecordRepository.findAll();
         return ResponseEntity.ok(records);
+    }
+
+    @PostMapping("/{id}/reserve")
+    @PreAuthorize("hasAuthority('BOOK_RESERVE')")
+    public ResponseEntity<ReservationResponse> reserveBook(@PathVariable Long id,
+                                                           @AuthenticationPrincipal UserPrincipal principal) {
+        ReservationResponse response = ReservationResponse.from(
+                reservationService.reserveBook(id, principal.getUsername()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
