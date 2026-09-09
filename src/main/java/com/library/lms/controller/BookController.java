@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
-public class BookController {
+public class  BookController {
 
     private final BookService bookService;
     private final BorrowRecordRepository borrowRecordRepository;
