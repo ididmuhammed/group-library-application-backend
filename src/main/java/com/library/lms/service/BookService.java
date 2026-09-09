@@ -29,6 +29,7 @@ public class BookService {
     private final BorrowRecordRepository borrowRecordRepository;
     private final UserRepository userRepository;
     private final FineService fineService;
+    private final ReservationService reservationService;
 
     @Transactional
     public BookResponse createBook(BookRequest request) {
@@ -77,8 +78,9 @@ public class BookService {
     @Transactional
     public void deleteBook(Long id) {
         Book book = getBookEntity(id);
-        // Delete all borrow history associated with this book
+        // Delete all borrow history and reservations associated with this book
         borrowRecordRepository.deleteByBook(book);
+        reservationService.deleteReservationsForBook(book);
         // Now delete the book
         bookRepository.delete(book);
     }
@@ -138,6 +140,10 @@ public class BookService {
         );
 
         bookRepository.save(book);
+
+        // If someone is waiting on this title, hand the freed copy straight
+        // to them instead of leaving it open for anyone to borrow.
+        reservationService.tryFulfillNextPending(book);
     }
 
     @Transactional(readOnly = true)
