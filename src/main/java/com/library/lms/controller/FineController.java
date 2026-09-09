@@ -4,6 +4,7 @@ import com.library.lms.entity.Fine;
 import com.library.lms.service.FineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class FineController {
      * Get all fines
      */
     @GetMapping()
+    @PreAuthorize("hasAuthority('FINE_READ')")
     public ResponseEntity<List<Fine>> getAllFines() {
         return ResponseEntity.ok(fineService.getAllFines());
     }
@@ -26,6 +28,7 @@ public class FineController {
      * Get a single fine
      */
     @GetMapping("{id}")
+    @PreAuthorize("hasAuthority('FINE_READ')")
     public ResponseEntity<Fine> getFine(@PathVariable Long id) {
         return ResponseEntity.ok(fineService.getFine(id));
     }
@@ -34,6 +37,7 @@ public class FineController {
      * Pay a fine
      */
     @PatchMapping("{id}/pay")
+    @PreAuthorize("hasAuthority('FINE_MANAGE')")
     public ResponseEntity<Fine> payFine(@PathVariable Long id) {
         return ResponseEntity.ok(fineService.payFine(id));
     }
@@ -41,7 +45,8 @@ public class FineController {
     /**
      * Waive a fine
      */
-    @PatchMapping("fines/{id}/waive")
+    @PatchMapping("{id}/waive")
+    @PreAuthorize("hasAuthority('FINE_MANAGE')")
     public ResponseEntity<Fine> waiveFine(@PathVariable Long id) {
         return ResponseEntity.ok(fineService.waiveFine(id));
     }
