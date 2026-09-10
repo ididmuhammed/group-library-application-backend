@@ -9,12 +9,15 @@ public record BookResponse(
         String isbn,
         String category,
         Integer totalCopies,
-        Integer availableCopies
+        Integer availableCopies,
+        Integer lostCopies,
+        Integer damagedCopies
 ) {
     public static BookResponse from(Book book) {
         return new BookResponse(
                 book.getId(), book.getTitle(), book.getAuthor(), book.getIsbn(),
-                book.getCategory(), book.getTotalCopies(), book.getAvailableCopies()
+                book.getCategory(), book.getTotalCopies(), book.getAvailableCopies(),
+                book.getLostCopies(), book.getDamagedCopies()
         );
     }
 }

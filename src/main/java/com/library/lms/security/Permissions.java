@@ -46,19 +46,30 @@ public final class Permissions {
     public static final String FINE_READ = "FINE_READ";
     public static final String FINE_MANAGE = "FINE_MANAGE";
 
+    // ---- Dashboard ----
+    public static final String DASHBOARD_VIEW = "DASHBOARD_VIEW";
+
+    // ---- Inventory / stock control ----
+    public static final String INVENTORY_READ = "INVENTORY_READ";
+    public static final String INVENTORY_MANAGE = "INVENTORY_MANAGE";
+
     public static final Set<String> ALL_PERMISSIONS = Set.of(
             USER_CREATE, USER_READ, USER_UPDATE, USER_DELETE, USER_MANAGE_ROLES,
             ROLE_MANAGE,
             BOOK_CREATE, BOOK_READ, BOOK_UPDATE, BOOK_DELETE,
             BOOK_BORROW, BOOK_RETURN, BORROW_RECORD_READ_ALL,
             BOOK_RESERVE, RESERVATION_READ_ALL,
-            FINE_READ, FINE_MANAGE
+            FINE_READ, FINE_MANAGE,
+            DASHBOARD_VIEW,
+            INVENTORY_READ, INVENTORY_MANAGE
     );
 
     public static final Set<String> LIBRARIAN_PERMISSIONS = Set.of(
             BOOK_CREATE, BOOK_READ, BOOK_UPDATE, BOOK_DELETE,
             BOOK_RETURN, BORROW_RECORD_READ_ALL, USER_READ,
-            RESERVATION_READ_ALL, FINE_READ, FINE_MANAGE
+            RESERVATION_READ_ALL, FINE_READ, FINE_MANAGE,
+            DASHBOARD_VIEW,
+            INVENTORY_READ, INVENTORY_MANAGE
     );
 
     public static final Set<String> MEMBER_PERMISSIONS = Set.of(
