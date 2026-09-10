@@ -48,6 +48,6 @@ public class BorrowRecord {
     private LocalDate lastOverdueNotifiedDate;
 
     public enum BorrowStatus {
-        BORROWED, RETURNED, OVERDUE
+        BORROWED, RETURNED, OVERDUE, LOST, DAMAGED
     }
 }

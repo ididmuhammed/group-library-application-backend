@@ -41,4 +41,16 @@ public class Book {
     @Builder.Default
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal bookCopyPrice = BigDecimal.ZERO;
+
+    // Running totals of copies permanently removed from circulation.
+    // totalCopies already reflects these deductions; these fields exist so
+    // the dashboard and inventory views can show "how many were lost" /
+    // "how many were damaged" without replaying the whole inventory log.
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer lostCopies = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer damagedCopies = 0;
 }

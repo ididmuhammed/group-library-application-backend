@@ -166,7 +166,7 @@ public class FineService {
      */
     @Transactional(readOnly = true)
     public List<Fine> getAllFines() {
-        return fineRepository.findAll();
+        return fineRepository.findAllWithBorrowRecord();
     }
 
 
@@ -176,7 +176,7 @@ public class FineService {
     @Transactional(readOnly = true)
     public Fine getFine(Long id) {
 
-        return fineRepository.findById(id)
+        return fineRepository.findByIdWithBorrowRecord(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Fine not found with id: " + id
