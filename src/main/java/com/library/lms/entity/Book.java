@@ -30,6 +30,14 @@ public class Book {
     @Column(length = 100)
     private String category;
 
+    // Cloudinary secure URL for the book's cover image
+    @Column(length = 500)
+    private String imageUrl;
+
+    // Cloudinary public_id, needed to delete/replace the asset later
+    @Column(length = 200)
+    private String imagePublicId;
+
     @Builder.Default
     @Column(nullable = false)
     private Integer totalCopies = 1;

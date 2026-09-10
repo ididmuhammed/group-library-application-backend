@@ -2,6 +2,7 @@ package com.library.lms.service;
 
 import com.library.lms.dto.request.CreateUserRequest;
 import com.library.lms.dto.request.UpdateUserRolesRequest;
+import com.library.lms.dto.response.PageResponse;
 import com.library.lms.dto.response.UserResponse;
 import com.library.lms.entity.Role;
 import com.library.lms.entity.User;
@@ -10,10 +11,14 @@ import com.library.lms.exception.ConflictException;
 import com.library.lms.exception.ResourceNotFoundException;
 import com.library.lms.repository.RoleRepository;
 import com.library.lms.repository.UserRepository;
+import com.library.lms.specification.UserSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.List;
@@ -24,18 +29,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final String PROFILE_IMAGE_FOLDER = "users";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final ImageService imageService;
 
     /**
      * Used by an authenticated admin (USER_CREATE permission) to create
      * a new user and assign roles. This is the only way non-admin users
      * get created; there is no open self-registration endpoint.
+     *
+     * @param profileImage optional profile picture; uploaded to Cloudinary
+     *                      if present, left null otherwise.
      */
     @Transactional
-    public UserResponse createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest request, MultipartFile profileImage) {
 
         if (userRepository.existsByUsername(request.username())) {
             throw new ConflictException(
@@ -51,14 +62,21 @@ public class UserService {
 
         Set<Role> roles = resolveRoles(request.roleNames());
 
-        User user = User.builder()
+        User.UserBuilder userBuilder = User.builder()
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .fullName(request.fullName())
                 .enabled(true)
-                .roles(roles)
-                .build();
+                .roles(roles);
+
+        if (profileImage != null && !profileImage.isEmpty()) {
+            var uploaded = imageService.upload(profileImage, PROFILE_IMAGE_FOLDER);
+            userBuilder.profileImageUrl(uploaded.url())
+                    .profileImagePublicId(uploaded.publicId());
+        }
+
+        User user = userBuilder.build();
 
         User savedUser = userRepository.save(user);
 
@@ -91,9 +109,41 @@ public class UserService {
         return UserResponse.from(userRepository.save(user));
     }
 
+    /**
+     * Replaces (or sets for the first time) a user's profile image.
+     * The old Cloudinary asset, if any, is deleted so it doesn't linger
+     * as an orphan.
+     */
+    @Transactional
+    public UserResponse updateProfileImage(Long userId, MultipartFile profileImage) {
+        User user = getUserEntity(userId);
+
+        String oldPublicId = user.getProfileImagePublicId();
+        var uploaded = imageService.upload(profileImage, PROFILE_IMAGE_FOLDER);
+
+        user.setProfileImageUrl(uploaded.url());
+        user.setProfileImagePublicId(uploaded.publicId());
+        User saved = userRepository.save(user);
+
+        imageService.delete(oldPublicId);
+
+        return UserResponse.from(saved);
+    }
+
+    /**
+     * Paged, sorted, filtered directory listing.
+     *
+     * @param search  free-text match against username/email/fullName
+     * @param role    exact role name filter, e.g. ROLE_ADMIN
+     * @param enabled account-enabled filter
+     * @param pageable page/size/sort - sortable properties: id, username, email, fullName, enabled, createdAt
+     */
     @Transactional(readOnly = true)
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream().map(UserResponse::from).collect(Collectors.toList());
+    public PageResponse<UserResponse> getAllUsers(String search, String role, Boolean enabled, Pageable pageable) {
+        Page<UserResponse> page = userRepository
+                .findAll(UserSpecifications.withFilters(search, role, enabled), pageable)
+                .map(UserResponse::from);
+        return PageResponse.from(page);
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +161,9 @@ public class UserService {
         if (isLastAdmin) {
             throw new BadRequestException("Cannot delete the last remaining admin user");
         }
+        String publicId = user.getProfileImagePublicId();
         userRepository.delete(user);
+        imageService.delete(publicId);
     }
 
     private User getUserEntity(Long userId) {
