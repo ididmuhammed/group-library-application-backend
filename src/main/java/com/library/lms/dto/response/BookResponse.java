@@ -11,13 +11,14 @@ public record BookResponse(
         Integer totalCopies,
         Integer availableCopies,
         Integer lostCopies,
-        Integer damagedCopies
+        Integer damagedCopies,
+        String imageUrl
 ) {
     public static BookResponse from(Book book) {
         return new BookResponse(
                 book.getId(), book.getTitle(), book.getAuthor(), book.getIsbn(),
                 book.getCategory(), book.getTotalCopies(), book.getAvailableCopies(),
-                book.getLostCopies(), book.getDamagedCopies()
+                book.getLostCopies(), book.getDamagedCopies(), book.getImageUrl()
         );
     }
 }

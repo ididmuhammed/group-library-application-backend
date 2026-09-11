@@ -13,6 +13,7 @@ public record UserResponse(
         String fullName,
         boolean enabled,
         Set<String> roles,
+        String profileImageUrl,
         LocalDateTime createdAt
 ) {
     public static UserResponse from(User user) {
@@ -23,6 +24,7 @@ public record UserResponse(
                 user.getFullName(),
                 user.isEnabled(),
                 user.getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet()),
+                user.getProfileImageUrl(),
                 user.getCreatedAt()
         );
     }

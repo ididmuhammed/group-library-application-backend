@@ -32,6 +32,14 @@ public class User {
     @Column(length = 100)
     private String fullName;
 
+    // Cloudinary secure URL for the user's profile image
+    @Column(length = 500)
+    private String profileImageUrl;
+
+    // Cloudinary public_id, needed to delete/replace the asset later
+    @Column(length = 200)
+    private String profileImagePublicId;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;

@@ -2,6 +2,7 @@ package com.library.lms.service;
 
 import com.library.lms.dto.request.BookRequest;
 import com.library.lms.dto.response.BookResponse;
+import com.library.lms.dto.response.PageResponse;
 import com.library.lms.entity.Book;
 import com.library.lms.entity.BorrowRecord;
 import com.library.lms.entity.User;
@@ -11,9 +12,13 @@ import com.library.lms.exception.ResourceNotFoundException;
 import com.library.lms.repository.BookRepository;
 import com.library.lms.repository.BorrowRecordRepository;
 import com.library.lms.repository.UserRepository;
+import com.library.lms.specification.BookSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,33 +29,52 @@ import java.util.stream.Collectors;
 public class BookService {
 
     private static final int DEFAULT_LOAN_DAYS = 1;
+    private static final String BOOK_IMAGE_FOLDER = "books";
 
     private final BookRepository bookRepository;
     private final BorrowRecordRepository borrowRecordRepository;
     private final UserRepository userRepository;
     private final FineService fineService;
     private final ReservationService reservationService;
+    private final ImageService imageService;
 
     @Transactional
-    public BookResponse createBook(BookRequest request) {
+    public BookResponse createBook(BookRequest request, MultipartFile image) {
         if (request.isbn() != null && !request.isbn().isBlank() && bookRepository.existsByIsbn(request.isbn())) {
             throw new ConflictException("A book with ISBN " + request.isbn() + " already exists");
         }
         int copies = request.totalCopies() == null ? 1 : request.totalCopies();
-        Book book = Book.builder()
+        Book.BookBuilder bookBuilder = Book.builder()
                 .title(request.title())
                 .author(request.author())
                 .isbn(request.isbn())
                 .category(request.category())
                 .totalCopies(copies)
-                .availableCopies(copies)
-                .build();
-        return BookResponse.from(bookRepository.save(book));
+                .availableCopies(copies);
+
+        if (image != null && !image.isEmpty()) {
+            var uploaded = imageService.upload(image, BOOK_IMAGE_FOLDER);
+            bookBuilder.imageUrl(uploaded.url()).imagePublicId(uploaded.publicId());
+        }
+
+        return BookResponse.from(bookRepository.save(bookBuilder.build()));
     }
 
+    /**
+     * Paged, sorted, filtered catalog listing.
+     *
+     * @param search       free-text match against title/author/isbn/category
+     * @param category     exact category filter
+     * @param availableOnly when true, only books with copies currently available
+     * @param pageable     page/size/sort - sortable properties: id, title, author,
+     *                     isbn, category, totalCopies, availableCopies, lostCopies, damagedCopies
+     */
     @Transactional(readOnly = true)
-    public List<BookResponse> getAllBooks() {
-        return bookRepository.findAll().stream().map(BookResponse::from).collect(Collectors.toList());
+    public PageResponse<BookResponse> getAllBooks(String search, String category, Boolean availableOnly, Pageable pageable) {
+        Page<BookResponse> page = bookRepository
+                .findAll(BookSpecifications.withFilters(search, category, availableOnly), pageable)
+                .map(BookResponse::from);
+        return PageResponse.from(page);
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +83,7 @@ public class BookService {
     }
 
     @Transactional
-    public BookResponse updateBook(Long id, BookRequest request) {
+    public BookResponse updateBook(Long id, BookRequest request, MultipartFile image) {
         Book book = getBookEntity(id);
         int previousTotal = book.getTotalCopies();
         int newTotal = request.totalCopies() == null ? previousTotal : request.totalCopies();
@@ -72,17 +96,31 @@ public class BookService {
         book.setTotalCopies(newTotal);
         book.setAvailableCopies(Math.max(0, book.getAvailableCopies() + delta));
 
-        return BookResponse.from(bookRepository.save(book));
+        String oldPublicId = null;
+        if (image != null && !image.isEmpty()) {
+            oldPublicId = book.getImagePublicId();
+            var uploaded = imageService.upload(image, BOOK_IMAGE_FOLDER);
+            book.setImageUrl(uploaded.url());
+            book.setImagePublicId(uploaded.publicId());
+        }
+
+        Book saved = bookRepository.save(book);
+        // Only remove the old asset once the new one is safely persisted
+        imageService.delete(oldPublicId);
+
+        return BookResponse.from(saved);
     }
 
     @Transactional
     public void deleteBook(Long id) {
         Book book = getBookEntity(id);
+        String publicId = book.getImagePublicId();
         // Delete all borrow history and reservations associated with this book
         borrowRecordRepository.deleteByBook(book);
         reservationService.deleteReservationsForBook(book);
         // Now delete the book
         bookRepository.delete(book);
+        imageService.delete(publicId);
     }
 
     @Transactional
